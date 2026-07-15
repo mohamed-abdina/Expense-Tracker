@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Tracker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#4f46e5;--primary-hover:#4338ca;--danger:#ef4444;--success:#22c55e;--warning:#f59e0b;--bg:#f1f5f9;--card:#fff;--text:#1e293b;--text-light:#64748b;--border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,.1);--radius:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+a{color:var(--primary);text-decoration:none;cursor:pointer}
+a:hover{text-decoration:underline}
+
+/* Auth */
+.auth-container{max-width:400px;margin:80px auto;padding:40px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
+.auth-container h1{font-size:1.5rem;margin-bottom:8px;text-align:center}
+.auth-container p{text-align:center;color:var(--text-light);margin-bottom:24px;font-size:.9rem}
+.auth-tabs{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.auth-tab{flex:1;padding:10px;text-align:center;cursor:pointer;background:var(--card);border:none;font-size:.9rem;font-weight:500;transition:background .2s}
+.auth-tab.active{background:var(--primary);color:#fff}
+.auth-form{display:none}
+.auth-form.active{display:block}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:.85rem;font-weight:500;margin-bottom:4px;color:var(--text)}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:.9rem;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--primary)}
+textarea{resize:vertical;min-height:60px}
+.btn{padding:10px 20px;border:none;border-radius:var(--radius);font-size:.9rem;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#16a34a}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{background:var(--bg)}
+.btn-sm{padding:6px 12px;font-size:.8rem}
+.btn-block{width:100%;justify-content:center}
+.error-msg{color:var(--danger);font-size:.8rem;margin-top:4px}
+.form-error{background:#fef2f2;border:1px solid #fecaca;color:var(--danger);padding:10px;border-radius:var(--radius);margin-bottom:16px;font-size:.85rem}
+
+/* Layout */
+.app{display:none}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--card);border-right:1px solid var(--border);padding:20px 0;z-index:100;display:flex;flex-direction:column}
+.sidebar-logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:8px;font-size:1.2rem;font-weight:700;color:var(--primary)}
+.sidebar nav{flex:1}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--text);font-size:.9rem;transition:all .2s;border-left:3px solid transparent}
+.sidebar nav a:hover{background:var(--bg);text-decoration:none}
+.sidebar nav a.active{background:#eef2ff;color:var(--primary);border-left-color:var(--primary);font-weight:500}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);font-size:.8rem;color:var(--text-light)}
+.sidebar-footer .user-name{font-weight:500;color:var(--text)}
+.main{margin-left:240px;padding:24px 32px}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.page-header h2{font-size:1.4rem}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.card-label{font-size:.8rem;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.card-value{font-size:1.5rem;font-weight:700}
+.card-value.income{color:var(--success)}
+.card-value.expense{color:var(--danger)}
+.card-value.balance{color:var(--primary)}
+
+/* Table */
+.table-container{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.table-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+.table-header h3{font-size:1rem}
+.table-filters{display:flex;gap:8px;flex-wrap:wrap}
+.table-filters select,.table-filters input{padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:.8rem}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px 16px;text-align:left;font-size:.85rem}
+th{background:var(--bg);font-weight:600;color:var(--text-light);text-transform:uppercase;font-size:.75rem;letter-spacing:.5px}
+tr:not(:last-child) td{border-bottom:1px solid var(--border)}
+tr:hover td{background:#f8fafc}
+.amount{font-weight:600}
+.amount.income{color:var(--success)}
+.amount.expense{color:var(--danger)}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:500}
+.badge-income{background:#dcfce7;color:#166534}
+.badge-expense{background:#fef2f2;color:#991b1b}
+.actions{display:flex;gap:4px}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);padding:24px;width:90%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:16px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+/* Empty state */
+.empty{text-align:center;padding:40px;color:var(--text-light)}
+.empty p{margin-bottom:16px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:var(--radius);color:#fff;font-size:.85rem;z-index:300;animation:slideIn .3s}
+.toast-success{background:var(--success)}
+.toast-error{background:var(--danger)}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Loading */
+.loading{text-align:center;padding:40px;color:var(--text-light)}
+
+/* Responsive */
+@media(max-width:768px){.sidebar{width:60px}.sidebar .nav-text,.sidebar-logo span,.sidebar-footer{display:none}.sidebar nav a{justify-content:center;padding:12px}.main{margin-left:60px;padding:16px}.cards{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- Auth Page -->
+<div id="authPage" class="auth-container">
+  <h1>Expense Tracker</h1>
+  <p>Manage your personal finances</p>
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="showAuthTab('login')">Login</button>
+    <button class="auth-tab" onclick="showAuthTab('register')">Register</button>
+  </div>
+  <div id="loginForm" class="auth-form active">
+    <div id="loginError"></div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="loginUsername" placeholder="Enter username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="Enter password">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="login()">Login</button>
+  </div>
+  <div id="registerForm" class="auth-form">
+    <div id="registerError"></div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="regUsername" placeholder="Choose a username">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="regEmail" placeholder="Enter email">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="regPassword" placeholder="Choose a password">
+    </div>
+    <div class="form-group">
+      <label>Confirm Password</label>
+      <input type="password" id="regPassword2" placeholder="Confirm password">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="register()">Create Account</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appPage" class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo"><span>Expense Tracker</span></div>
+    <nav>
+      <a href="#" class="active" data-page="dashboard" onclick="navigate('dashboard')"><span>&#9632;</span><span class="nav-text">Dashboard</span></a>
+      <a href="#" data-page="transactions" onclick="navigate('transactions')"><span>&#9776;</span><span class="nav-text">Transactions</span></a>
+      <a href="#" data-page="categories" onclick="navigate('categories')"><span>&#9733;</span><span class="nav-text">Categories</span></a>
+      <a href="#" data-page="reports" onclick="navigate('reports')"><span>&#9783;</span><span class="nav-text">Reports</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-name" id="sidebarUser"></div>
+      <a href="#" onclick="logout()" style="color:var(--danger);font-size:.8rem">Logout</a>
+    </div>
+  </div>
+  <div class="main" id="mainContent"></div>
+</div>
+
+<!-- Modals -->
+<div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000/api';
+let token = localStorage.getItem('access');
+let refresh = localStorage.getItem('refresh');
+let currentUser = null;
+
+// API helper
+async function api(endpoint, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API}${endpoint}`, { ...options, headers });
+  if (res.status === 401 && refresh) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      headers['Authorization'] = `Bearer ${token}`;
+      return fetch(`${API}${endpoint}`, { ...options, headers });
+    }
+    logout();
+    throw new Error('Session expired');
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(JSON.stringify(data));
+  }
+  return res.json();
+}
+
+async function refreshAccessToken() {
+  try {
+    const res = await fetch(`${API}/login/refresh/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh })
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    token = data.access;
+    localStorage.setItem('access', token);
+    if (data.refresh) { refresh = data.refresh; localStorage.setItem('refresh', refresh); }
+    return true;
+  } catch { return false; }
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// Auth
+function showAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+  document.querySelector(`.auth-tab:${tab === 'login' ? 'first-child' : 'last-child'}`).classList.add('active');
+  document.getElementById(`${tab}Form`).classList.add('active');
+}
+
+async function login() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!username || !password) return showAuthError('loginError', 'Please fill all fields');
+  try {
+    const data = await api('/login/', { method: 'POST', body: JSON.stringify({ username, password }) });
+    token = data.access; refresh = data.refresh;
+    localStorage.setItem('access', token); localStorage.setItem('refresh', refresh);
+    currentUser = data.user;
+    showApp();
+  } catch (e) {
+    showAuthError('loginError', 'Invalid username or password');
+  }
+}
+
+async function register() {
+  const username = document.getElementById('regUsername').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const password2 = document.getElementById('regPassword2').value;
+  if (!username || !email || !password || !password2) return showAuthError('registerError', 'Please fill all fields');
+  if (password !== password2) return showAuthError('registerError', 'Passwords do not match');
+  try {
+    const data = await api('/register/', { method: 'POST', body: JSON.stringify({ username, email, password, password2 }) });
+    token = data.access; refresh = data.refresh;
+    localStorage.setItem('access', token); localStorage.setItem('refresh', refresh);
+    currentUser = data.user;
+    showApp();
+    toast('Account created successfully!');
+  } catch (e) {
+    const msg = e.message.includes('username') ? 'Username already exists' : 'Registration failed';
+    showAuthError('registerError', msg);
+  }
+}
+
+function showAuthError(id, msg) {
+  document.getElementById(id).innerHTML = `<div class="form-error">${msg}</div>`;
+}
+
+function logout() {
+  token = refresh = currentUser = null;
+  localStorage.removeItem('access'); localStorage.removeItem('refresh');
+  document.getElementById('authPage').style.display = 'block';
+  document.getElementById('appPage').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('authPage').style.display = 'none';
+  document.getElementById('appPage').style.display = 'block';
+  document.getElementById('sidebarUser').textContent = currentUser?.username || '';
+  navigate('dashboard');
+}
+
+// Navigation
+function navigate(page) {
+  document.querySelectorAll('.sidebar nav a').forEach(a => {
+    a.classList.toggle('active', a.dataset.page === page);
+  });
+  const pages = { dashboard: renderDashboard, transactions: renderTransactions, categories: renderCategories, reports: renderReports };
+  (pages[page] || pages.dashboard)();
+}
+
+// Modal
+function openModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+
+// Format
+function fmt(n) { return parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtDate(d) { return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+
+// ========== DASHBOARD ==========
+async function renderDashboard() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div class="loading">Loading dashboard...</div>';
+  try {
+    const data = await api('/dashboard/');
+    const recent = (data.recent_transactions || []).map(t => `
+      <tr>
+        <td>${fmtDate(t.date)}</td>
+        <td>${t.title}</td>
+        <td>${t.category_name || '-'}</td>
+        <td><span class="badge badge-${t.type}">${t.type}</span></td>
+        <td class="amount ${t.type}">${t.type === 'expense' ? '-' : '+'}$${fmt(t.amount)}</td>
+      </tr>
+    `).join('');
+    main.innerHTML = `
+      <div class="page-header"><h2>Dashboard</h2></div>
+      <div class="cards">
+        <div class="card"><div class="card-label">Total Income</div><div class="card-value income">$${fmt(data.total_income)}</div></div>
+        <div class="card"><div class="card-label">Total Expenses</div><div class="card-value expense">$${fmt(data.total_expenses)}</div></div>
+        <div class="card"><div class="card-label">Balance</div><div class="card-value balance">$${fmt(data.current_balance)}</div></div>
+        <div class="card"><div class="card-label">Transactions</div><div class="card-value">${data.number_of_transactions}</div></div>
+      </div>
+      <div class="table-container">
+        <div class="table-header"><h3>Recent Transactions</h3></div>
+        <table>
+          <thead><tr><th>Date</th><th>Title</th><th>Category</th><th>Type</th><th>Amount</th></tr></thead>
+          <tbody>${recent || '<tr><td colspan="5" class="empty">No transactions yet</td></tr>'}</tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    main.innerHTML = '<div class="loading">Failed to load dashboard</div>';
+  }
+}
+
+// ========== TRANSACTIONS ==========
+let txFilters = { type: '', category: '', search: '' };
+
+async function renderTransactions() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div class="loading">Loading transactions...</div>';
+  try {
+    const [txData, catData] = await Promise.all([
+      api(`/transactions/?${new URLSearchParams(Object.fromEntries(Object.entries(txFilters).filter(([_,v])=>v)))}`),
+      api('/categories/')
+    ]);
+    const txs = Array.isArray(txData) ? txData : (txData.results || []);
+    const cats = Array.isArray(catData) ? catData : (catData.results || []);
+    const catOptions = cats.map(c => `<option value="${c.id}">${c.name} (${c.type})</option>`).join('');
+    const rows = txs.map(t => `
+      <tr>
+        <td>${fmtDate(t.date)}</td>
+        <td>${t.title}</td>
+        <td>${t.category_name || '-'}</td>
+        <td><span class="badge badge-${t.type}">${t.type}</span></td>
+        <td class="amount ${t.type}">$${fmt(t.amount)}</td>
+        <td class="actions">
+          <button class="btn btn-outline btn-sm" onclick="editTransaction(${t.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTransaction(${t.id})">Del</button>
+        </td>
+      </tr>
+    `).join('');
+    main.innerHTML = `
+      <div class="page-header">
+        <h2>Transactions</h2>
+        <button class="btn btn-primary" onclick="addTransaction()">+ New Transaction</button>
+      </div>
+      <div class="table-container">
+        <div class="table-header">
+          <div class="table-filters">
+            <select onchange="txFilters.type=this.value;renderTransactions()">
+              <option value="">All Types</option><option value="income">Income</option><option value="expense">Expense</option>
+            </select>
+            <select onchange="txFilters.category=this.value;renderTransactions()">
+              <option value="">All Categories</option>${catOptions}
+            </select>
+            <input type="text" placeholder="Search..." value="${txFilters.search}" onkeyup="if(event.key==='Enter'){txFilters.search=this.value;renderTransactions()}">
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Date</th><th>Title</th><th>Category</th><th>Type</th><th>Amount</th><th>Actions</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6" class="empty">No transactions yet</td></tr>'}</tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    main.innerHTML = '<div class="loading">Failed to load transactions</div>';
+  }
+}
+
+async function addTransaction() {
+  const cats = await api('/categories/');
+  const list = Array.isArray(cats) ? cats : (cats.results || []);
+  openModal(`
+    <h3>New Transaction</h3>
+    <div id="txFormError"></div>
+    <div class="form-group"><label>Title</label><input type="text" id="txTitle" placeholder="e.g. Grocery shopping"></div>
+    <div class="form-group"><label>Amount</label><input type="number" step="0.01" id="txAmount" placeholder="0.00"></div>
+    <div class="form-group"><label>Type</label>
+      <select id="txType" onchange="filterTxCategories()">
+        <option value="expense">Expense</option><option value="income">Income</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Category</label><select id="txCategory">
+      ${list.map(c => `<option value="${c.id}" data-type="${c.type}">${c.name} (${c.type})</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Date</label><input type="date" id="txDate" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label>Notes</label><textarea id="txNotes" placeholder="Optional notes"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTransaction()">Save</button>
+    </div>
+  `);
+  filterTxCategories();
+}
+
+function filterTxCategories() {
+  const type = document.getElementById('txType').value;
+  document.querySelectorAll('#txCategory option').forEach(o => o.style.display = o.dataset.type === type ? '' : 'none');
+  const sel = document.getElementById('txCategory');
+  sel.value = [...sel.options].find(o => o.dataset.type === type)?.value || '';
+}
+
+async function saveTransaction() {
+  const category = document.getElementById('txCategory').value;
+  const body = {
+    title: document.getElementById('txTitle').value.trim(),
+    amount: document.getElementById('txAmount').value,
+    type: document.getElementById('txType').value,
+    category: category ? parseInt(category) : null,
+    date: document.getElementById('txDate').value,
+    notes: document.getElementById('txNotes').value.trim()
+  };
+  if (!body.title || !body.amount) return document.getElementById('txFormError').innerHTML = '<div class="form-error">Title and amount are required</div>';
+  try {
+    await api('/transactions/', { method: 'POST', body: JSON.stringify(body) });
+    closeModal(); toast('Transaction created!'); renderTransactions();
+  } catch (e) {
+    document.getElementById('txFormError').innerHTML = `<div class="form-error">Failed to save: ${e.message}</div>`;
+  }
+}
+
+async function editTransaction(id) {
+  const [t, cats] = await Promise.all([api(`/transactions/${id}/`), api('/categories/')]);
+  const list = Array.isArray(cats) ? cats : (cats.results || []);
+  openModal(`
+    <h3>Edit Transaction</h3>
+    <div id="txFormError"></div>
+    <div class="form-group"><label>Title</label><input type="text" id="txTitle" value="${t.title}"></div>
+    <div class="form-group"><label>Amount</label><input type="number" step="0.01" id="txAmount" value="${t.amount}"></div>
+    <div class="form-group"><label>Type</label>
+      <select id="txType" onchange="filterTxCategories()">
+        <option value="expense" ${t.type==='expense'?'selected':''}>Expense</option>
+        <option value="income" ${t.type==='income'?'selected':''}>Income</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Category</label><select id="txCategory">
+      ${list.map(c => `<option value="${c.id}" data-type="${c.type}" ${c.id===t.category?'selected':''}>${c.name} (${c.type})</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Date</label><input type="date" id="txDate" value="${t.date}"></div>
+    <div class="form-group"><label>Notes</label><textarea id="txNotes">${t.notes || ''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateTransaction(${id})">Update</button>
+    </div>
+  `);
+  filterTxCategories();
+}
+
+async function updateTransaction(id) {
+  const category = document.getElementById('txCategory').value;
+  const body = {
+    title: document.getElementById('txTitle').value.trim(),
+    amount: document.getElementById('txAmount').value,
+    type: document.getElementById('txType').value,
+    category: category ? parseInt(category) : null,
+    date: document.getElementById('txDate').value,
+    notes: document.getElementById('txNotes').value.trim()
+  };
+  try {
+    await api(`/transactions/${id}/`, { method: 'PUT', body: JSON.stringify(body) });
+    closeModal(); toast('Transaction updated!'); renderTransactions();
+  } catch (e) {
+    document.getElementById('txFormError').innerHTML = `<div class="form-error">Failed to update: ${e.message}</div>`;
+  }
+}
+
+async function deleteTransaction(id) {
+  if (!confirm('Delete this transaction?')) return;
+  try {
+    await api(`/transactions/${id}/`, { method: 'DELETE' });
+    toast('Transaction deleted!'); renderTransactions();
+  } catch (e) { toast('Failed to delete', 'error'); }
+}
+
+// ========== CATEGORIES ==========
+async function renderCategories() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div class="loading">Loading categories...</div>';
+  try {
+    const data = await api('/categories/');
+    const cats = Array.isArray(data) ? data : (data.results || []);
+    const rows = cats.map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td><span class="badge badge-${c.type}">${c.type}</span></td>
+        <td class="actions">
+          <button class="btn btn-outline btn-sm" onclick="editCategory(${c.id},'${c.name}','${c.type}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCategory(${c.id})">Del</button>
+        </td>
+      </tr>
+    `).join('');
+    main.innerHTML = `
+      <div class="page-header">
+        <h2>Categories</h2>
+        <button class="btn btn-primary" onclick="addCategory()">+ New Category</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Name</th><th>Type</th><th>Actions</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="3" class="empty">No categories yet</td></tr>'}</tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    main.innerHTML = '<div class="loading">Failed to load categories</div>';
+  }
+}
+
+function addCategory() {
+  openModal(`
+    <h3>New Category</h3>
+    <div id="catFormError"></div>
+    <div class="form-group"><label>Name</label><input type="text" id="catName" placeholder="e.g. Food"></div>
+    <div class="form-group"><label>Type</label>
+      <select id="catType"><option value="expense">Expense</option><option value="income">Income</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCategory()">Save</button>
+    </div>
+  `);
+}
+
+async function saveCategory() {
+  const body = { name: document.getElementById('catName').value.trim(), type: document.getElementById('catType').value };
+  if (!body.name) return document.getElementById('catFormError').innerHTML = '<div class="form-error">Name is required</div>';
+  try {
+    await api('/categories/', { method: 'POST', body: JSON.stringify(body) });
+    closeModal(); toast('Category created!'); renderCategories();
+  } catch (e) {
+    document.getElementById('catFormError').innerHTML = '<div class="form-error">Failed to save. Category may already exist.</div>';
+  }
+}
+
+function editCategory(id, name, type) {
+  openModal(`
+    <h3>Edit Category</h3>
+    <div id="catFormError"></div>
+    <div class="form-group"><label>Name</label><input type="text" id="catName" value="${name}"></div>
+    <div class="form-group"><label>Type</label>
+      <select id="catType"><option value="expense" ${type==='expense'?'selected':''}>Expense</option><option value="income" ${type==='income'?'selected':''}>Income</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateCategory(${id})">Update</button>
+    </div>
+  `);
+}
+
+async function updateCategory(id) {
+  const body = { name: document.getElementById('catName').value.trim(), type: document.getElementById('catType').value };
+  try {
+    await api(`/categories/${id}/`, { method: 'PUT', body: JSON.stringify(body) });
+    closeModal(); toast('Category updated!'); renderCategories();
+  } catch (e) {
+    document.getElementById('catFormError').innerHTML = '<div class="form-error">Failed to update</div>';
+  }
+}
+
+async function deleteCategory(id) {
+  if (!confirm('Delete this category?')) return;
+  try {
+    await api(`/categories/${id}/`, { method: 'DELETE' });
+    toast('Category deleted!'); renderCategories();
+  } catch (e) { toast('Failed to delete', 'error'); }
+}
+
+// ========== REPORTS ==========
+async function renderReports() {
+  const main = document.getElementById('mainContent');
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  main.innerHTML = '<div class="loading">Loading reports...</div>';
+  try {
+    const [monthly, incomeVsExpense] = await Promise.all([
+      api(`/reports/monthly/?month=${month}`),
+      api('/reports/income-vs-expense/?date_from=2026-01-01&date_to=2026-12-31')
+    ]);
+    const catBreakdown = (monthly.category_breakdown || []).map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td><span class="badge badge-${c.type}">${c.type}</span></td>
+        <td class="amount ${c.type}">$${fmt(c.total)}</td>
+        <td>${c.count}</td>
+      </tr>
+    `).join('');
+    main.innerHTML = `
+      <div class="page-header"><h2>Reports</h2></div>
+      <div class="cards">
+        <div class="card"><div class="card-label">${monthly.month || month} Income</div><div class="card-value income">$${fmt(monthly.total_income || 0)}</div></div>
+        <div class="card"><div class="card-label">${monthly.month || month} Expenses</div><div class="card-value expense">$${fmt(monthly.total_expenses || 0)}</div></div>
+        <div class="card"><div class="card-label">Net</div><div class="card-value balance">$${fmt((monthly.total_income || 0) - (monthly.total_expenses || 0))}</div></div>
+      </div>
+      <div class="table-container" style="margin-bottom:24px">
+        <div class="table-header"><h3>Category Breakdown</h3></div>
+        <table>
+          <thead><tr><th>Category</th><th>Type</th><th>Total</th><th>Count</th></tr></thead>
+          <tbody>${catBreakdown || '<tr><td colspan="4" class="empty">No data</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div class="cards">
+        <div class="card"><div class="card-label">YTD Income</div><div class="card-value income">$${fmt(incomeVsExpense.total_income || 0)}</div></div>
+        <div class="card"><div class="card-label">YTD Expenses</div><div class="card-value expense">$${fmt(incomeVsExpense.total_expenses || 0)}</div></div>
+        <div class="card"><div class="card-label">YTD Net</div><div class="card-value balance">$${fmt((incomeVsExpense.total_income || 0) - (incomeVsExpense.total_expenses || 0))}</div></div>
+      </div>`;
+  } catch (e) {
+    main.innerHTML = '<div class="loading">Failed to load reports</div>';
+  }
+}
+
+// ========== INIT ==========
+if (token) {
+  api('/profile/').then(u => { currentUser = u; showApp(); }).catch(() => logout());
+}
+</script>
+</body>
+</html>
